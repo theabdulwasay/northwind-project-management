@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Northwind Relaunch — Execution Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F5F0;
+    --panel:#FFFFFF;
+    --line:#E4DFD3;
+    --navy:#14213D;
+    --slate:#5B6478;
+    --amber:#F2A93B;
+    --teal:#2A9D8F;
+    --coral:#E56B6F;
+    --backlog:#8A8FA3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--navy);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1400px;margin:0 auto;padding:28px 24px 60px;}
+
+  /* ---- Header / control-tower strip ---- */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:20px;
+    border-bottom:2px solid var(--navy);
+    padding-bottom:18px;
+    margin-bottom:6px;
+  }
+  .title-block h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:26px;
+    font-weight:700;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .title-block .sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--slate);
+    letter-spacing:0.02em;
+  }
+  .metrics{display:flex;gap:26px;}
+  .metric{text-align:right;}
+  .metric .num{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;}
+  .metric .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:0.06em;}
+
+  .progress-strip{
+    height:6px;
+    background:var(--line);
+    border-radius:3px;
+    margin:16px 0 24px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--teal),var(--amber));
+    border-radius:3px;
+    transition:width .4s ease;
+  }
+
+  /* ---- Toolbar ---- */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:20px;
+  }
+  select, .btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:8px 12px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--navy);
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn.primary:hover{background:#1e2d54;}
+  .btn:hover{border-color:var(--navy);}
+  .toolbar .spacer{flex:1;}
+  input[type=file]{display:none;}
+
+  /* ---- Board ---- */
+  .board{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  @media (max-width:900px){.board{grid-template-columns:1fr;}}
+
+  .col{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    min-height:200px;
+  }
+  .col-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14px;
+  }
+  .col-head .count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--slate);
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:2px 8px;
+  }
+  .col-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:80px;flex:1;}
+  .col-body.drag-over{background:#F0EEE6;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--backlog);
+    border-radius:8px;
+    padding:10px 12px;
+    cursor:grab;
+    font-size:13px;
+  }
+  .card:active{cursor:grabbing;}
+  .card[data-priority="high"]{border-left-color:var(--coral);}
+  .card[data-priority="medium"]{border-left-color:var(--amber);}
+  .card[data-priority="low"]{border-left-color:var(--teal);}
+  .card .id{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--slate);}
+  .card .title{font-weight:600;margin:3px 0 6px;line-height:1.3;}
+  .card .meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--slate);}
+  .card .ws{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--bg);
+    border-radius:5px;
+    padding:2px 6px;
+  }
+  .card .actions{display:none;gap:6px;margin-top:8px;}
+  .card:hover .actions{display:flex;}
+  .card .actions button{
+    font-size:10px;
+    border:none;
+    background:none;
+    color:var(--slate);
+    cursor:pointer;
+    text-decoration:underline;
+    padding:0;
+  }
+  .card .actions button:hover{color:var(--coral);}
+
+  /* ---- Modal ---- */
+  .modal-backdrop{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(20,33,61,0.45);
+    align-items:center;justify-content:center;
+    z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--panel);
+    border-radius:12px;
+    padding:22px;
+    width:360px;
+    max-width:92vw;
+  }
+  .modal h2{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11px;font-weight:600;color:var(--slate);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;}
+  .field input, .field select{
+    width:100%;
+    padding:8px 10px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+
+  footer{margin-top:30px;font-size:11px;color:var(--slate);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Northwind Relaunch — Execution Board</h1>
+      <div class="sub">WBS-DERIVED TASK BOARD · WEEK 15 OF 16 · LAUNCH SEP 18</div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="num" id="m-done">—</div><div class="lbl">Done</div></div>
+      <div class="metric"><div class="num" id="m-active">—</div><div class="lbl">In flight</div></div>
+      <div class="metric"><div class="num" id="m-pct">—</div><div class="lbl">Complete</div></div>
+    </div>
+  </header>
+
+  <div class="progress-strip"><div class="progress-fill" id="progress-fill"></div></div>
+
+  <div class="toolbar">
+    <select id="filter-ws"><option value="">All workstreams</option></select>
+    <select id="filter-owner"><option value="">All owners</option></select>
+    <div class="spacer"></div>
+    <button class="btn" id="btn-export">Export board (JSON)</button>
+    <button class="btn" id="btn-import-trigger">Import board</button>
+    <input type="file" id="btn-import" accept="application/json">
+    <button class="btn primary" id="btn-new">+ New task</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <footer>Data lives in this page's memory only — export to save your changes, import to pick back up later. No server, no tracking.</footer>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h2 id="modal-title">New task</h2>
+    <div class="field"><label>Title</label><input id="f-title" type="text" placeholder="e.g. Build checkout template"></div>
+    <div class="field"><label>Workstream</label>
+      <select id="f-ws">
+        <option>Discovery & UX</option>
+        <option>Content & SEO</option>
+        <option>Development</option>
+        <option>QA & Testing</option>
+        <option>Launch</option>
+        <option>Post-Launch</option>
+      </select>
+    </div>
+    <div class="field"><label>Owner</label><input id="f-owner" type="text" placeholder="e.g. Maya"></div>
+    <div class="field"><label>Priority</label>
+      <select id="f-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+    </div>
+    <div class="field"><label>Column</label>
+      <select id="f-col"><option value="backlog">Backlog</option><option value="progress">In Progress</option><option value="review">Review</option><option value="done">Done</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel">Cancel</button>
+      <button class="btn primary" id="btn-save">Save task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLUMNS = [
+  {id:'backlog', label:'Backlog'},
+  {id:'progress', label:'In Progress'},
+  {id:'review', label:'Review'},
+  {id:'done', label:'Done'},
+];
+
+let tasks = [
+  {id:'2.3', title:'Wireframes — core templates', ws:'Discovery & UX', owner:'Maya', priority:'medium', col:'done'},
+  {id:'2.4', title:'High-fidelity design — desktop', ws:'Discovery & UX', owner:'Maya', priority:'high', col:'done'},
+  {id:'2.5', title:'High-fidelity design — mobile', ws:'Discovery & UX', owner:'Maya', priority:'high', col:'done'},
+  {id:'3.2', title:'Redirect map (legacy → new URLs)', ws:'Content & SEO', owner:'Riley', priority:'medium', col:'done'},
+  {id:'3.4', title:'Copy refresh — top 200 products', ws:'Content & SEO', owner:'Riley', priority:'medium', col:'done'},
+  {id:'3.5', title:'Copy refresh — category pages', ws:'Content & SEO', owner:'Riley', priority:'low', col:'done'},
+  {id:'4.2', title:'Front-end build — templates', ws:'Development', owner:'Jordan', priority:'high', col:'done'},
+  {id:'4.3', title:'Front-end build — cart & checkout', ws:'Development', owner:'Jordan', priority:'high', col:'done'},
+  {id:'4.4', title:'Inventory API integration', ws:'Development', owner:'Sam', priority:'high', col:'done'},
+  {id:'4.5', title:'Content migration (automated + QA)', ws:'Development', owner:'Chris', priority:'medium', col:'done'},
+  {id:'4.6', title:'Analytics & tag implementation', ws:'Development', owner:'Chris', priority:'low', col:'done'},
+  {id:'CR-002', title:'BOPIS indicator on PDP & cart', ws:'Development', owner:'Jordan', priority:'medium', col:'done'},
+  {id:'5.1', title:'Functional test pass', ws:'QA & Testing', owner:'Taylor', priority:'high', col:'done'},
+  {id:'5.2', title:'Inventory sync integration testing', ws:'QA & Testing', owner:'Taylor', priority:'high', col:'done'},
+  {id:'5.3', title:'Accessibility audit (WCAG 2.1 AA)', ws:'QA & Testing', owner:'Taylor', priority:'medium', col:'done'},
+  {id:'5.4', title:'UAT with stakeholders', ws:'QA & Testing', owner:'Taylor', priority:'high', col:'done'},
+  {id:'5.5', title:'Cross-browser/device testing', ws:'QA & Testing', owner:'Taylor', priority:'medium', col:'review'},
+  {id:'6.1', title:'Go/no-go review', ws:'Launch', owner:'[Your Name]', priority:'high', col:'progress'},
+  {id:'6.2', title:'DNS cutover & production deploy', ws:'Launch', owner:'Sam', priority:'high', col:'backlog'},
+  {id:'6.3', title:'Post-launch smoke test', ws:'Launch', owner:'Taylor', priority:'high', col:'backlog'},
+  {id:'6.4', title:'Store manager & support briefing', ws:'Launch', owner:'[Your Name]', priority:'medium', col:'progress'},
+  {id:'7.1', title:'Hypercare (2 weeks)', ws:'Post-Launch', owner:'Jordan', priority:'medium', col:'backlog'},
+  {id:'7.2', title:'60-day conversion metric review', ws:'Post-Launch', owner:'[Your Name]', priority:'low', col:'backlog'},
+  {id:'7.3', title:'Retrospective & closeout', ws:'Post-Launch', owner:'[Your Name]', priority:'low', col:'backlog'},
+];
+
+let editingId = null;
+
+function uniqueOptions(field){
+  return [...new Set(tasks.map(t=>t[field]))].sort();
+}
+
+function populateFilters(){
+  const wsSel = document.getElementById('filter-ws');
+  const ownerSel = document.getElementById('filter-owner');
+  const wsVal = wsSel.value, ownerVal = ownerSel.value;
+  wsSel.innerHTML = '<option value="">All workstreams</option>' + uniqueOptions('ws').map(w=>`<option ${w===wsVal?'selected':''}>${w}</option>`).join('');
+  ownerSel.innerHTML = '<option value="">All owners</option>' + uniqueOptions('owner').map(o=>`<option ${o===ownerVal?'selected':''}>${o}</option>`).join('');
+}
+
+function render(){
+  const wsFilter = document.getElementById('filter-ws').value;
+  const ownerFilter = document.getElementById('filter-owner').value;
+  const visible = tasks.filter(t => (!wsFilter || t.ws===wsFilter) && (!ownerFilter || t.owner===ownerFilter));
+
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  COLUMNS.forEach(col=>{
+    const colTasks = visible.filter(t=>t.col===col.id);
+    const colEl = document.createElement('div');
+    colEl.className = 'col';
+    colEl.innerHTML = `<div class="col-head"><span>${col.label}</span><span class="count">${colTasks.length}</span></div>
+      <div class="col-body" data-col="${col.id}"></div>`;
+    board.appendChild(colEl);
+    const body = colEl.querySelector('.col-body');
+
+    body.addEventListener('dragover', e=>{e.preventDefault(); body.classList.add('drag-over');});
+    body.addEventListener('dragleave', ()=> body.classList.remove('drag-over'));
+    body.addEventListener('drop', e=>{
+      e.preventDefault();
+      body.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const task = tasks.find(t=>t.id===id);
+      if(task){ task.col = col.id; renderAll(); }
+    });
+
+    colTasks.forEach(t=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.draggable = true;
+      card.dataset.priority = t.priority;
+      card.innerHTML = `
+        <div class="id">${t.id}</div>
+        <div class="title">${escapeHtml(t.title)}</div>
+        <div class="meta"><span class="ws">${escapeHtml(t.ws)}</span><span>${escapeHtml(t.owner)}</span></div>
+        <div class="actions"><button data-edit="${t.id}">Edit</button><button data-del="${t.id}">Delete</button></div>
+      `;
+      card.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', t.id));
+      body.appendChild(card);
+    });
+  });
+
+  board.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openModal(b.dataset.edit)));
+  board.querySelectorAll('[data-del]').forEach(b=> b.addEventListener('click', ()=>{
+    tasks = tasks.filter(t=>t.id!==b.dataset.del);
+    renderAll();
+  }));
+
+  updateMetrics();
+}
+
+function updateMetrics(){
+  const done = tasks.filter(t=>t.col==='done').length;
+  const active = tasks.filter(t=>t.col==='progress'||t.col==='review').length;
+  const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+  document.getElementById('m-done').textContent = done;
+  document.getElementById('m-active').textContent = active;
+  document.getElementById('m-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function renderAll(){ populateFilters(); render(); }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function openModal(id){
+  editingId = id || null;
+  document.getElementById('modal-title').textContent = id ? 'Edit task' : 'New task';
+  if(id){
+    const t = tasks.find(t=>t.id===id);
+    document.getElementById('f-title').value = t.title;
+    document.getElementById('f-ws').value = t.ws;
+    document.getElementById('f-owner').value = t.owner;
+    document.getElementById('f-priority').value = t.priority;
+    document.getElementById('f-col').value = t.col;
+  } else {
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-owner').value = '';
+    document.getElementById('f-priority').value = 'medium';
+    document.getElementById('f-col').value = 'backlog';
+  }
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-backdrop').classList.remove('open'); }
+
+document.getElementById('btn-new').addEventListener('click', ()=> openModal(null));
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+document.getElementById('modal-backdrop').addEventListener('click', e=>{ if(e.target.id==='modal-backdrop') closeModal(); });
+
+document.getElementById('btn-save').addEventListener('click', ()=>{
+  const title = document.getElementById('f-title').value.trim();
+  if(!title){ document.getElementById('f-title').focus(); return; }
+  const data = {
+    title,
+    ws: document.getElementById('f-ws').value,
+    owner: document.getElementById('f-owner').value.trim() || 'Unassigned',
+    priority: document.getElementById('f-priority').value,
+    col: document.getElementById('f-col').value,
+  };
+  if(editingId){
+    Object.assign(tasks.find(t=>t.id===editingId), data);
+  } else {
+    const newId = 'T-' + (Math.max(0, ...tasks.filter(t=>t.id.startsWith('T-')).map(t=>parseInt(t.id.slice(2))||0)) + 1);
+    tasks.push({id:newId, ...data});
+  }
+  closeModal();
+  renderAll();
+});
+
+document.getElementById('filter-ws').addEventListener('change', render);
+document.getElementById('filter-owner').addEventListener('change', render);
+
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(tasks, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'northwind-board.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('btn-import-trigger').addEventListener('click', ()=> document.getElementById('btn-import').click());
+document.getElementById('btn-import').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const imported = JSON.parse(reader.result);
+      if(Array.isArray(imported)){ tasks = imported; renderAll(); }
+    }catch(err){ alert('That file could not be read as a board export.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+renderAll();
+</script>
+</body>
+</html>
