@@ -92,8 +92,7 @@ Most PM portfolios are a folder of disconnected templates. This one is a single 
 
 ## 🙋 About me
 
-**Prepared by [Your Name]**, Project Manager
-📧 [your email] · 🔗 [your LinkedIn] · 📍 [your location]
+abdulwasaymalik757@gmail.com
 
-*Swap in your own details before publishing — search this repo for `[Your Name]` to find every spot.*
+
 
